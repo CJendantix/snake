@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <raylib.h>
-#include <chrono>
 #include <queue>
 
 enum class Direction
@@ -86,10 +85,9 @@ void ResetGame(Game &game)
     int centerY = game.height / 2;
 
     Vector2Int head = {centerX, centerY};
-    Vector2Int second = {head.x - OffsetFromDirection(game.direction).x,
-        head.y - OffsetFromDirection(game.direction).y};
-    Vector2Int third = {second.x - OffsetFromDirection(game.direction).x,
-        second.y - OffsetFromDirection(game.direction).y};
+    Vector2Int offset = OffsetFromDirection(game.direction);
+    Vector2Int second = {head.x - offset.x, head.y - offset.y};
+    Vector2Int third = {second.x - offset.x, second.y - offset.y};
 
     game.snake = {head, second, third};
     game.apple = GetNewApplePosition(game);
@@ -223,14 +221,9 @@ int main()
 
     float moveTimer = 0.0f;
 
-    auto previousTime = std::chrono::high_resolution_clock::now();
-
     while (!WindowShouldClose())
     {
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<float> elapsed = currentTime - previousTime;
-        previousTime = currentTime;
-        float deltaTime = elapsed.count();
+        float deltaTime = GetFrameTime();
 
         moveTimer += deltaTime;
 
