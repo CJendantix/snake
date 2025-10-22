@@ -1,8 +1,5 @@
-#include <deque>
 #include <algorithm>
 #include <raylib.h>
-#include <vector>
-#include <random>
 #include <chrono>
 #include <queue>
 
