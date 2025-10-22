@@ -239,12 +239,13 @@ void Render(const Game &game, int screenWidth, int screenHeight)
     for (int i = 0; i < snakeLength; ++i)
     {
         const auto &coord = game.snake[i];
-        float gradientFactor = static_cast<float>(i) / static_cast<float>(snakeLength);
+        int factor = (snakeLength - i) * 255 / snakeLength;
         Color color = {
-            static_cast<unsigned char>(SNAKE_HEAD_COLOR.r * (1 - gradientFactor)),
-            static_cast<unsigned char>(SNAKE_HEAD_COLOR.g * (1 - gradientFactor)),
-            static_cast<unsigned char>(SNAKE_HEAD_COLOR.b * (1 - gradientFactor)),
-            255};
+            static_cast<unsigned char>(SNAKE_HEAD_COLOR.r * factor / 255),
+            static_cast<unsigned char>(SNAKE_HEAD_COLOR.g * factor / 255),
+            static_cast<unsigned char>(SNAKE_HEAD_COLOR.b * factor / 255),
+            255
+        };
 
         DrawRectangle(offsetX + coord.x * cellSize,
                       offsetY + coord.y * cellSize,
