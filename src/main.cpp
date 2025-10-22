@@ -1,4 +1,4 @@
-#include <algorithm>
+#include <ranges>
 #include <raylib.h>
 #include <queue>
 
@@ -100,29 +100,14 @@ void QueueDirection(Game &game, Direction newDirection)
     if (game.directionQueue.size() >= 3)
         return;
 
-    if (!game.directionQueue.empty() && game.directionQueue.back() == newDirection)
-        return;
+    Direction lastDirection = game.directionQueue.empty() ? game.direction : game.directionQueue.back();
 
-    if (game.directionQueue.empty())
+    if ((newDirection == LEFT && lastDirection != RIGHT) ||
+        (newDirection == RIGHT && lastDirection != LEFT) ||
+        (newDirection == UP && lastDirection != DOWN) ||
+        (newDirection == DOWN && lastDirection != UP))
     {
-        if ((newDirection == LEFT && game.direction != RIGHT) ||
-            (newDirection == RIGHT && game.direction != LEFT) ||
-            (newDirection == UP && game.direction != DOWN) ||
-            (newDirection == DOWN && game.direction != UP))
-        {
-            game.directionQueue.push(newDirection);
-        }
-    }
-    else
-    {
-        Direction lastQueued = game.directionQueue.back();
-        if ((newDirection == LEFT && lastQueued != RIGHT) ||
-            (newDirection == RIGHT && lastQueued != LEFT) ||
-            (newDirection == UP && lastQueued != DOWN) ||
-            (newDirection == DOWN && lastQueued != UP))
-        {
-            game.directionQueue.push(newDirection);
-        }
+        game.directionQueue.push(newDirection);
     }
 }
 
