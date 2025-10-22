@@ -47,20 +47,6 @@ int GetCellSize(int gameWidth, int gameHeight, int screenWidth, int screenHeight
     return std::min(cellWidth, cellHeight);
 }
 
-Direction GetNewDirection(Direction current)
-{
-    using enum Direction;
-    if ((IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) && current != RIGHT)
-        return LEFT;
-    if ((IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) && current != LEFT)
-        return RIGHT;
-    if ((IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) && current != DOWN)
-        return UP;
-    if ((IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) && current != UP)
-        return DOWN;
-    return current;
-}
-
 Vector2Int OffsetFromDirection(Direction dir)
 {
     using enum Direction;
@@ -75,7 +61,6 @@ Vector2Int OffsetFromDirection(Direction dir)
     case RIGHT:
         return {1, 0};
     }
-    return {0, 0};
 }
 
 bool IsGameOver(const Game &game, const Vector2Int &newHead)
@@ -101,39 +86,13 @@ void ResetGame(Game &game)
     int centerY = game.height / 2;
 
     Vector2Int head = {centerX, centerY};
-    Vector2Int second;
-    Vector2Int third;
-
-    using enum Direction;
-    switch (game.direction)
-    {
-    case UP:
-        second = {centerX, centerY + 1};
-        third = {centerX, centerY + 2};
-        break;
-    case DOWN:
-        second = {centerX, centerY - 1};
-        third = {centerX, centerY - 2};
-        break;
-    case LEFT:
-        second = {centerX + 1, centerY};
-        third = {centerX + 2, centerY};
-        break;
-    case RIGHT:
-    default:
-        second = {centerX - 1, centerY};
-        third = {centerX - 2, centerY};
-        break;
-    }
+    Vector2Int second = {head.x - OffsetFromDirection(game.direction).x,
+        head.y - OffsetFromDirection(game.direction).y};
+    Vector2Int third = {second.x - OffsetFromDirection(game.direction).x,
+        second.y - OffsetFromDirection(game.direction).y};
 
     game.snake = {head, second, third};
     game.apple = GetNewApplePosition(game);
-
-    if (game.direction != UP && game.direction != DOWN &&
-        game.direction != LEFT && game.direction != RIGHT)
-    {
-        game.direction = RIGHT;
-    }
 }
 
 void QueueDirection(Game &game, Direction newDirection)
