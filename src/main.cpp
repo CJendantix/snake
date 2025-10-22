@@ -208,9 +208,7 @@ int main()
 
     while (!WindowShouldClose())
     {
-        float deltaTime = GetFrameTime();
-
-        moveTimer += deltaTime;
+        moveTimer += GetFrameTime();
 
         HandleInput(game);
 
