@@ -1,7 +1,6 @@
 #include <deque>
 #include <algorithm>
 #include <raylib.h>
-#include <cmath>
 #include <vector>
 #include <random>
 #include <chrono>
@@ -17,11 +16,9 @@ enum class Direction
 
 struct Vector2Int
 {
-    int x, y;
-    bool operator==(const Vector2Int &other) const
-    {
-        return x == other.x && y == other.y;
-    }
+    int x;
+    int y;
+    bool operator==(const Vector2Int &other) const = default;
 };
 
 struct Game
@@ -34,7 +31,7 @@ struct Game
     std::queue<Direction> directionQueue;
 
     Game(int w, int h, Direction dir, const Vector2Int &applePos, const std::deque<Vector2Int> &initialSnake)
-        : width(w), height(h), direction(dir), apple(applePos), snake(initialSnake) {}
+        : width(w), height(h), snake(initialSnake), apple(applePos), direction(dir) {}
 };
 
 constexpr int SCREEN_WIDTH = 800;
@@ -43,42 +40,42 @@ constexpr int BORDER_THICKNESS = 2;
 constexpr int FPS = 60;
 constexpr float MOVE_INTERVAL = 0.1f;
 const Color SNAKE_HEAD_COLOR{71, 130, 255, 255};
-const Color SNAKE_BODY_COLOR{26, 80, 196, 255};
 const Color BORDER_COLOR{0, 0, 0, 255};
 const Color BORDER_BG{160, 255, 112, 255};
-const Vector2Int INITIAL_HEAD{10, 10};
 
 int GetCellSize(int gameWidth, int gameHeight, int screenWidth, int screenHeight)
 {
-    float cellWidth = (float)(screenWidth - BORDER_THICKNESS * 2) / gameWidth;
-    float cellHeight = (float)(screenHeight - BORDER_THICKNESS * 2) / gameHeight;
-    return static_cast<int>(std::min(cellWidth, cellHeight));
+    int cellWidth = (screenWidth - BORDER_THICKNESS * 2) / gameWidth;
+    int cellHeight = (screenHeight - BORDER_THICKNESS * 2) / gameHeight;
+    return std::min(cellWidth, cellHeight);
 }
 
 Direction GetNewDirection(Direction current)
 {
-    if ((IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) && current != Direction::RIGHT)
-        return Direction::LEFT;
-    if ((IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) && current != Direction::LEFT)
-        return Direction::RIGHT;
-    if ((IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) && current != Direction::DOWN)
-        return Direction::UP;
-    if ((IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) && current != Direction::UP)
-        return Direction::DOWN;
+    using enum Direction;
+    if ((IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) && current != RIGHT)
+        return LEFT;
+    if ((IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) && current != LEFT)
+        return RIGHT;
+    if ((IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) && current != DOWN)
+        return UP;
+    if ((IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) && current != UP)
+        return DOWN;
     return current;
 }
 
 Vector2Int OffsetFromDirection(Direction dir)
 {
+    using enum Direction;
     switch (dir)
     {
-    case Direction::UP:
+    case UP:
         return {0, -1};
-    case Direction::DOWN:
+    case DOWN:
         return {0, 1};
-    case Direction::LEFT:
+    case LEFT:
         return {-1, 0};
-    case Direction::RIGHT:
+    case RIGHT:
         return {1, 0};
     }
     return {0, 0};
@@ -88,21 +85,16 @@ bool IsGameOver(const Game &game, const Vector2Int &newHead)
 {
     if (newHead.x < 0 || newHead.x >= game.width || newHead.y < 0 || newHead.y >= game.height)
         return true;
-    return std::find(game.snake.begin(), game.snake.end(), newHead) != game.snake.end();
+    return std::ranges::find(game.snake, newHead) != game.snake.end();
 }
 
 Vector2Int GetNewApplePosition(const Game &game)
 {
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
-    std::uniform_int_distribution<> distX(0, game.width - 1);
-    std::uniform_int_distribution<> distY(0, game.height - 1);
-
     Vector2Int pos;
     do
     {
-        pos = {distX(gen), distY(gen)};
-    } while (std::find(game.snake.begin(), game.snake.end(), pos) != game.snake.end());
+        pos = {GetRandomValue(0, game.width - 1), GetRandomValue(0, game.height - 1)};
+    } while (std::ranges::find(game.snake, pos) != game.snake.end());
     return pos;
 }
 
@@ -112,23 +104,25 @@ void ResetGame(Game &game)
     int centerY = game.height / 2;
 
     Vector2Int head = {centerX, centerY};
-    Vector2Int second, third;
+    Vector2Int second;
+    Vector2Int third;
 
+    using enum Direction;
     switch (game.direction)
     {
-    case Direction::UP:
+    case UP:
         second = {centerX, centerY + 1};
         third = {centerX, centerY + 2};
         break;
-    case Direction::DOWN:
+    case DOWN:
         second = {centerX, centerY - 1};
         third = {centerX, centerY - 2};
         break;
-    case Direction::LEFT:
+    case LEFT:
         second = {centerX + 1, centerY};
         third = {centerX + 2, centerY};
         break;
-    case Direction::RIGHT:
+    case RIGHT:
     default:
         second = {centerX - 1, centerY};
         third = {centerX - 2, centerY};
@@ -138,15 +132,17 @@ void ResetGame(Game &game)
     game.snake = {head, second, third};
     game.apple = GetNewApplePosition(game);
 
-    if (game.direction != Direction::UP && game.direction != Direction::DOWN &&
-        game.direction != Direction::LEFT && game.direction != Direction::RIGHT)
+    if (game.direction != UP && game.direction != DOWN &&
+        game.direction != LEFT && game.direction != RIGHT)
     {
-        game.direction = Direction::RIGHT;
+        game.direction = RIGHT;
     }
 }
 
 void QueueDirection(Game &game, Direction newDirection)
 {
+    using enum Direction;
+
     if (game.directionQueue.size() >= 3)
         return;
 
@@ -155,10 +151,10 @@ void QueueDirection(Game &game, Direction newDirection)
 
     if (game.directionQueue.empty())
     {
-        if ((newDirection == Direction::LEFT && game.direction != Direction::RIGHT) ||
-            (newDirection == Direction::RIGHT && game.direction != Direction::LEFT) ||
-            (newDirection == Direction::UP && game.direction != Direction::DOWN) ||
-            (newDirection == Direction::DOWN && game.direction != Direction::UP))
+        if ((newDirection == LEFT && game.direction != RIGHT) ||
+            (newDirection == RIGHT && game.direction != LEFT) ||
+            (newDirection == UP && game.direction != DOWN) ||
+            (newDirection == DOWN && game.direction != UP))
         {
             game.directionQueue.push(newDirection);
         }
@@ -166,10 +162,10 @@ void QueueDirection(Game &game, Direction newDirection)
     else
     {
         Direction lastQueued = game.directionQueue.back();
-        if ((newDirection == Direction::LEFT && lastQueued != Direction::RIGHT) ||
-            (newDirection == Direction::RIGHT && lastQueued != Direction::LEFT) ||
-            (newDirection == Direction::UP && lastQueued != Direction::DOWN) ||
-            (newDirection == Direction::DOWN && lastQueued != Direction::UP))
+        if ((newDirection == LEFT && lastQueued != RIGHT) ||
+            (newDirection == RIGHT && lastQueued != LEFT) ||
+            (newDirection == UP && lastQueued != DOWN) ||
+            (newDirection == DOWN && lastQueued != UP))
         {
             game.directionQueue.push(newDirection);
         }
@@ -178,14 +174,15 @@ void QueueDirection(Game &game, Direction newDirection)
 
 void HandleInput(Game &game)
 {
+    using enum Direction;
     if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_LEFT))
-        QueueDirection(game, Direction::LEFT);
+        QueueDirection(game, LEFT);
     if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT))
-        QueueDirection(game, Direction::RIGHT);
+        QueueDirection(game, RIGHT);
     if (IsKeyPressed(KEY_W) || IsKeyPressed(KEY_UP))
-        QueueDirection(game, Direction::UP);
+        QueueDirection(game, UP);
     if (IsKeyPressed(KEY_S) || IsKeyPressed(KEY_DOWN))
-        QueueDirection(game, Direction::DOWN);
+        QueueDirection(game, DOWN);
 }
 
 bool Update(Game &game)
@@ -221,30 +218,31 @@ void Render(const Game &game, int screenWidth, int screenHeight)
     ClearBackground(RAYWHITE);
 
     int cellSize = GetCellSize(game.width, game.height, screenWidth, screenHeight);
-    float gameWidthPx = static_cast<float>(cellSize * game.width);
-    float gameHeightPx = static_cast<float>(cellSize * game.height);
 
-    float offsetX = floorf((screenWidth - gameWidthPx) / 2.0f);
-    float offsetY = floorf((screenHeight - gameHeightPx) / 2.0f);
+    int gameWidthPx = cellSize * game.width;
+    int gameHeightPx = cellSize * game.height;
+
+    int offsetX = (screenWidth - gameWidthPx) / 2;
+    int offsetY = (screenHeight - gameHeightPx) / 2;
 
     DrawRectangle(offsetX - BORDER_THICKNESS, offsetY - BORDER_THICKNESS,
                   gameWidthPx + BORDER_THICKNESS * 2, gameHeightPx + BORDER_THICKNESS * 2,
                   BORDER_BG);
 
     DrawRectangleLinesEx(
-        Rectangle{offsetX - BORDER_THICKNESS, offsetY - BORDER_THICKNESS,
-                  gameWidthPx + BORDER_THICKNESS * 2, gameHeightPx + BORDER_THICKNESS * 2},
-        BORDER_THICKNESS, BORDER_COLOR);
+        Rectangle{static_cast<float>(offsetX - BORDER_THICKNESS), static_cast<float>(offsetY - BORDER_THICKNESS),
+                  static_cast<float>(gameWidthPx + BORDER_THICKNESS * 2), static_cast<float>(gameHeightPx + BORDER_THICKNESS * 2)},
+        static_cast<float>(BORDER_THICKNESS), BORDER_COLOR);
 
     DrawRectangle(offsetX + game.apple.x * cellSize,
                   offsetY + game.apple.y * cellSize,
                   cellSize, cellSize, RED);
 
-    int snakeLength = game.snake.size();
+    auto snakeLength = static_cast<int>(game.snake.size());
     for (int i = 0; i < snakeLength; ++i)
     {
         const auto &coord = game.snake[i];
-        float gradientFactor = static_cast<float>(i) / snakeLength;
+        float gradientFactor = static_cast<float>(i) / static_cast<float>(snakeLength);
         Color color = {
             static_cast<unsigned char>(SNAKE_HEAD_COLOR.r * (1 - gradientFactor)),
             static_cast<unsigned char>(SNAKE_HEAD_COLOR.g * (1 - gradientFactor)),
