@@ -12,6 +12,7 @@
 #include <ranges>
 #include <raylib.h>
 #include <queue>
+#include <random>
 
 /**
  * @brief Represents the four possible movement directions of the snake.
@@ -126,12 +127,28 @@ bool IsGameOver(const Game &game, const Vector2Int &newHead)
  */
 Vector2Int GetNewApplePosition(const Game &game)
 {
-    Vector2Int pos;
-    do
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::vector<Vector2Int> emptyCells;
+    for (int x = 0; x < game.width; ++x)
     {
-        pos = {GetRandomValue(0, game.width - 1), GetRandomValue(0, game.height - 1)};
-    } while (std::ranges::find(game.snake, pos) != game.snake.end());
-    return pos;
+        for (int y = 0; y < game.height; ++y)
+        {
+            Vector2Int pos{x, y};
+            if (std::ranges::find(game.snake, pos) == game.snake.end())
+            {
+                emptyCells.push_back(pos);
+            }
+        }
+    }
+    
+    if (!emptyCells.empty())
+    {
+        std::uniform_int_distribution dis(0, static_cast<int>(emptyCells.size()) - 1);
+        return emptyCells[dis(gen)];
+    }
+
+    return Vector2Int{0, 0};
 }
 
 /**
